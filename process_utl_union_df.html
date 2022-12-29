@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css">
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+</head>
+<body>
+    
+    <pre>
+package cl.bancochile.fdd.reporting.r07.utl.process
+
+//Importancia generica.
+import cl.bancochile.fdd.todos.globalSettings._
+import com.huemulsolutions.bigdata.common._
+import com.huemulsolutions.bigdata.control._
+import org.apache.spark.sql.types._
+import java.util.Calendar
+import java.time._
+import spark.implicits._
+import org.apache.spark.sql.functions._
+import org.apache.spark.sql.DataFrame
+
+/**
+ * Objeto proceso de masterización en tabla dimensional.
+ */
+object process_utl_union_df{
+   /*
+    @author 
+    @param huemulBigDataGov: 
+    @param ControlParent: 
+    @param DFAliasOrigen1: df_activo_mrx_cop_sat
+    @param DFAliasOrigen2: df_pasivo_mrx_cop_sat
+    @returns resultInsert: Df con union de activos y pasivos de sistema MRX COP.
+   */
+    def UnionCopMrx(huemulBigDataGov: huemul_BigDataGovernance, control: huemul_Control, DFAliasOrigen1: String, DFAliasOrigen2: String, fechaEjecucion: String ): (huemul_DataFrame, String) = {
+     val dfUnionMrxCop = new huemul_DataFrame(huemulBigDataGov, control)
+     var nombreDf ="nomUnionMrxCop"
+         dfUnionMrxCop.DF_from_SQL(nombreDf,
+        </pre>
+        <span id="UnionCopMrx"> </span><pre class="text-success">
+          s""" SELECT
+
+                        acmrco_cod_llave_operacion                                   AS cop_llave_producto
+                        ,TO_DATE('${fechaEjecucion}')                                AS cop_fecha
+                        ,acmrco_cod_tip_sistema                                      AS cop_tipo_sistema
+                        ,acmrco_cod_moneda                                           AS cop_mon_producto
+                        ,acmrco_tip_operacion                                        AS cop_tipo_operacion
+                        ,acmrco_mon_partida_cntbl                                    AS cop_partida_mb1                       
+                        ,acmrco_tip_tasa                                             AS cop_tipo_tasa
+                        ,acmrco_rut_cliente                                          AS cop_rut_de_ac
+                        ,acmrco_dv_cliente                                           AS cop_dv_de_ac
+                        ,acmrco_mon_cap_mnd_ori_venc                                 AS cop_cap_mo_x_vencer
+                        ,acmrco_mon_operacion                                        AS cop_cartera_vencida_mo
+                        ,acmrco_fec_venc_producto                                    AS cop_fec_expira_prod
+                        ,acmrco_fec_prox_cambio_tasa                                 AS cop_fec_prox_cambio_tasa
+                        ,acmrco_num_documento                                        AS cop_num_doc
+                        ,acmrco_cod_ifrs                                             AS cop_cod_ifrs
+                        ,acmrco_cod_ifrs_9                                           AS cop_cod_ifrs9                        
+                        
+              FROM $DFAliasOrigen1
+              
+              UNION ALL
+              
+              SELECT 
+                        pamrco_cod_llave_operacion                                   AS cop_llave_producto
+                        ,TO_DATE('${fechaEjecucion}')                                AS cop_fecha
+                        ,pamrco_cod_tip_sistema                                      AS cop_tipo_sistema
+                        ,pamrco_cod_moneda                                           AS cop_mon_producto
+                        ,pamrco_tip_operacion                                        AS cop_tipo_operacion
+                        ,pamrco_mon_partida_cntbl                                    AS cop_partida_mb1                       
+                        ,pamrco_tip_tasa                                             AS cop_tipo_tasa
+                        ,pamrco_rut_cliente                                          AS cop_rut_de_ac
+                        ,pamrco_dv_cliente                                           AS cop_dv_de_ac
+                        ,pamrco_mon_cap_mnd_ori_venc                                 AS cop_cap_mo_x_vencer
+                        ,pamrco_mon_operacion                                        AS cop_cartera_vencida_mo
+                        ,pamrco_fec_expiracion                                       AS cop_fec_expira_prod                        
+                        ,pamrco_fec_prox_cambio_tasa                                 AS cop_fec_prox_cambio_tasa
+                        ,pamrco_num_documento                                        AS cop_num_doc
+                        ,pamrco_cod_ifrs                                             AS cop_cod_ifrs
+                        ,pamrco_cod_ifrs_9                                           AS cop_cod_ifrs9
+              FROM $DFAliasOrigen2 
+            </pre>
+            <pre>
+              """)
+            
+        return (dfUnionMrxCop, nombreDf)
+    }
+    
+    /*
+    @author 
+    @param huemulBigDataGov: 
+    @param ControlParent: 
+    @param DFAliasOrigen1: df_activo_mrx_deu_sat
+    @param DFAliasOrigen2: df_pasivo_mrx_deu_sat
+    @returns resultInsert: 
+   */
+    def UnionDeuMrx(huemulBigDataGov: huemul_BigDataGovernance, control: huemul_Control, DFAliasOrigen1: String, DFAliasOrigen2: String, fechaEjecucion: String ): (huemul_DataFrame, String) = {
+     val dfUnionMrxDeu = new huemul_DataFrame(huemulBigDataGov, control)
+     var nombreDf ="nomUnionMrxDeu"
+         dfUnionMrxDeu.DF_from_SQL(nombreDf,
+        </pre>
+        <span id="UnionDeuMrx"> </span><pre class="text-success">
+                              s""" SELECT 
+                                          acmrde_cod_llave_operacion                 AS deu_llave_producto
+                                          ,TO_DATE('${fechaEjecucion}')              AS deu_fecha
+                                          ,acmrde_fec_venc_deud                      AS deu_fecha_vencimiento
+                                          ,acmrde_cod_sistema                        AS deu_cod_sistema
+                                          ,acmrde_mon_cap_mnd_ori                    AS deu_capital_termino
+                                          ,acmrde_mon_int_contractual                AS deu_interes_termino
+                                          ,acmrde_cod_tip_sistema                    AS deu_tipo_sistema
+                                          ,acmrde_mon_cap_mtm_mnd_ori                AS deu_capital_aju_contab
+                                          ,acmrde_mon_int_mtm_mnd_ori                AS deu_interes_aju_contab
+                                   FROM $DFAliasOrigen1
+                                   UNION ALL
+                                   SELECT 
+                                          pamrde_cod_llave_operacion                 AS deu_llave_producto
+                                          ,TO_DATE('${fechaEjecucion}')              AS deu_fecha
+                                          ,pamrde_fec_venc_deud                      AS deu_fecha_vencimiento
+                                          ,pamrde_cod_sistema                        AS deu_cod_sistema
+                                          ,pamrde_mon_cap_mnd_ori                    AS deu_capital_termino
+                                          ,pamrde_mon_int_contractual                AS deu_interes_termino
+                                          ,pamrde_cod_tip_sistema                    AS deu_tipo_sistema
+                                          ,pamrde_mon_cap_mtm_mnd_ori                AS deu_capital_aju_contab
+                                          ,pamrde_mon_int_mtm_mnd_ori                AS deu_interes_aju_contab
+                                   FROM $DFAliasOrigen2 """)
+                                </pre>
+                                <pre>
+        return (dfUnionMrxDeu, nombreDf)
+    }
+    
+    /*
+    @author 
+    @param huemulBigDataGov: 
+    @param ControlParent: 
+    @param DFAliasOrigen1:
+    @param DFAliasOrigen2:
+    @param DFAliasOrigen3:  
+    @returns resultInsert: 
+   */
+    def UnionCopTrd(huemulBigDataGov: huemul_BigDataGovernance, control: huemul_Control, DFAliasOrigen1: String, DFAliasOrigen2: String, DFAliasOrigen3: String, fechaEjecucion: String ): (huemul_DataFrame, String) = {
+     val dfUnionTrdCop = new huemul_DataFrame(huemulBigDataGov, control)
+     var nombreDf ="nomUnionTrdCop"
+         dfUnionTrdCop.DF_from_SQL(nombreDf,
+        </pre>
+        <span id="UnionCopTrd"> </span><pre class="text-success">
+                              s""" SELECT 
+                                          actrco_cod_llave_operacion     AS cop_llave_producto
+                                          ,TO_DATE('${fechaEjecucion}')  AS cop_fecha
+                                          ,actrco_cod_tip_sistema        AS cop_tipo_sistema
+                                          ,actrco_cod_moneda             AS cop_mon_producto
+                                          ,actrco_tip_operacion          AS cop_tipo_operacion
+                                          ,actrco_mon_partida_cntbl      AS cop_partida_mb1
+                                          ,actrco_tip_tasa               AS cop_tipo_tasa
+                                          ,actrco_rut_cliente            AS cop_rut_de_ac
+                                          ,actrco_dv_cliente             AS cop_dv_de_ac
+                                          ,actrco_num_operacion          AS cop_num_doc
+                                          ,actrco_fec_vencimiento        AS cop_fec_expira_prod
+                                          --,actrco_fec_prox_cambio_tasa   AS cop_fec_prox_cambio_tasa
+                                          ,actrco_mon_cap_contr_mnd_ori  AS cop_cap_mo_x_vencer
+                                          ,actrco_mon_int_contr_mnd_ori  AS cop_int_dev_mo_x_vencer                                          
+                                          ,actrco_mon_cap_contr_mnd_clp  AS cop_cap_mn_x_vencer
+                                          ,actrco_mon_int_contr_mnd_clp  AS cop_int_dev_mn_x_vencer                                          
+                                          ,actrco_cod_ifrs               AS cop_cod_ifrs
+                                          ,actrco_cod_ifrs_9             AS cop_cod_ifrs9
+                                          
+
+                                   FROM $DFAliasOrigen1
+                                   UNION ALL
+                                   SELECT 
+                                          patrco_cod_llave_operacion     AS cop_llave_producto
+                                          ,TO_DATE('${fechaEjecucion}')  AS cop_fecha
+                                          ,patrco_cod_tip_sistema        AS cop_tipo_sistema
+                                          ,patrco_cod_moneda             AS cop_mon_producto
+                                          ,patrco_tip_operacion          AS cop_tipo_operacion
+                                          ,patrco_mon_partida_cntbl      AS cop_partida_mb1
+                                          ,patrco_tip_tasa               AS cop_tipo_tasa
+                                          ,patrco_rut_cliente            AS cop_rut_de_ac
+                                          ,patrco_dv_cliente             AS cop_dv_de_ac
+                                          ,patrco_num_operacion          AS cop_num_doc
+                                          ,patrco_fec_vencimiento        AS cop_fec_expira_prod
+                                          --,patrco_fec_prox_cambio_tasa AS cop_fec_prox_cambio_tasa
+                                          ,patrco_mon_cap_contr_mnd_ori  AS cop_cap_mo_x_vencer
+                                          ,patrco_mon_int_contr_mnd_ori  AS cop_int_dev_mo_x_vencer
+                                          ,patrco_mon_cap_contr_mnd_clp  AS cop_cap_mn_x_vencer
+                                          ,patrco_mon_int_contr_mnd_clp  AS cop_int_dev_mn_x_vencer
+                                          ,patrco_cod_ifrs               AS cop_cod_ifrs
+                                          ,patrco_cod_ifrs_9             AS cop_cod_ifrs9                                         
+
+                                   FROM $DFAliasOrigen2
+                                   UNION ALL
+                                   SELECT 
+                                          intrco_cod_llave_operacion     AS cop_llave_producto
+                                          ,TO_DATE('${fechaEjecucion}')  AS cop_fecha
+                                          ,intrco_cod_tip_sistema        AS cop_tipo_sistema
+                                          ,intrco_cod_moneda             AS cop_mon_producto
+                                          ,intrco_tip_operacion          AS cop_tipo_operacion
+                                          ,intrco_mon_partida_cntbl      AS cop_partida_mb1
+                                          ,intrco_tip_tasa               AS cop_tipo_tasa
+                                          ,intrco_rut_cliente            AS cop_rut_de_ac
+                                          ,intrco_dv_cliente             AS cop_dv_de_ac
+                                          ,intrco_num_operacion          AS cop_num_doc
+                                          ,intrco_fec_vencimiento        AS cop_fec_expira_prod
+                                          --,intrco_fec_prox_cambio_tasa   AS cop_fec_prox_cambio_tasa
+                                          ,intrco_mon_cap_contr_mnd_ori  AS cop_cap_mo_x_vencer
+                                          ,intrco_mon_int_contr_mnd_ori  AS cop_int_dev_mo_x_vencer
+                                          ,intrco_mon_cap_contr_mnd_clp  AS cop_cap_mn_x_vencer
+                                          ,intrco_mon_int_contr_mnd_clp  AS cop_int_dev_mn_x_vencer
+                                          ,intrco_cod_ifrs               AS cop_cod_ifrs
+                                          ,intrco_cod_ifrs_9             AS cop_cod_ifrs9                             
+                                   
+                                   FROM $DFAliasOrigen3 """)
+                                </pre>
+                                <pre>
+        return (dfUnionTrdCop, nombreDf)
+    }
+    
+  /*
+    @author 
+    @param huemulBigDataGov: 
+    @param ControlParent: 
+    @param DFAliasOrigen1: sat_filial_bafcop
+    @param DFAliasOrigen2: sat_filial_bcbcop
+    @returns resultInsert: nomUnionFilialCop
+   */
+    def UnionCopFilial(huemulBigDataGov: huemul_BigDataGovernance, control: huemul_Control, DFAliasOrigen1: String, DFAliasOrigen2: String, fechaEjecucion: String ): (huemul_DataFrame, String) = {
+     val dfUnionFilialCop = new huemul_DataFrame(huemulBigDataGov, control)
+     var nombreDf ="nomUnionFilialCop"
+         dfUnionFilialCop.DF_from_SQL(nombreDf,
+        </pre>
+        <span id="UnionCopFilial"> </span><pre class="text-success">
+                              s""" SELECT 
+                                          TO_DATE('${fechaEjecucion}')        AS cop_fecha
+                                          ,bafcop_llave_producto              AS cop_llave_producto
+                                          ,bafcop_cod_sistema                 AS cop_cod_sistema
+                                          ,bafcop_cod_tipo_sistema            AS cop_tipo_sistema
+                                          ,bafcop_num_rut_contraparte         AS cop_num_rut_contraparte
+                                          ,bafcop_dv_rut_contraparte          AS cop_dv_rut_contraparte
+                                          ,bafcop_cod_mnd_bch                 AS cop_cod_mnd_bch
+                                          ,bafcop_num_doc                     AS cop_num_doc
+                                          ,bafcop_tipo_operacion              AS cop_tipo_operacion
+                                          ,bafcop_plzo_contable               AS cop_plzo_contable
+                                          ,bafcop_num_partida_mb1             AS cop_num_partida_mb1
+                                          ,bafcop_tipo_tasa                   AS cop_tipo_tasa
+                                          ,bafcop_cod_ifrs                    AS cop_cod_ifrs
+                                          ,bafcop_cod_ifrs9                   AS cop_cod_ifrs9
+                                          ,bafcop_mon_cartera_vencida         AS cop_mon_cartera_vencida
+                                          ,bafcop_mon_capital_venc_mo         AS cop_capital_venc_mo
+                                          ,bafcop_fec_cambio_tasa             AS cop_fec_cambio_tasa
+                                          ,bafcop_clasif_rgo_contraparte      AS cop_clasif_rgo_contraparte
+                                          ,bafcop_cod_pais_riesgo             AS cop_cod_pais_riesgo
+                                          ,bafcop_fec_venc_operacion          AS cop_fec_venc_operacion
+                                          ,bafcop_tasa_real_operacion         AS cop_tasa_real_operacion
+                                          ,bafcop_tasa_real_anual             AS cop_tasa_real_anual
+                                          ,bafcop_num_cuenta_gl               AS cop_num_cuenta_gl
+                                          ,bafcop_tipo_cambio                 AS cop_tipo_cambio
+                                          ,bafcop_fec_ini_operacion           AS cop_fec_ini_operacion
+                                          ,bafcop_mon_cap_mora_h29_mo         AS cop_mon_cap_mora_h29_mo
+                                          ,bafcop_mon_cap_mora_d30_h59_mo     AS cop_mon_cap_mora_d30_h59_mo
+                                          ,bafcop_mon_cap_mora_d60_mo         AS cop_mon_cap_mora_d60_mo
+                                          ,bafcop_mon_int_dev_xvencer_mo      AS cop_mon_int_dev_xvencer_mo
+                                          ,bafcop_cod_producto                AS cop_cod_producto
+                                   FROM $DFAliasOrigen1
+                                   UNION ALL
+                                   SELECT 
+                                          TO_DATE('${fechaEjecucion}')        AS cop_fecha
+                                          ,bcbcop_llave_producto              AS cop_llave_producto
+                                          ,bcbcop_cod_sistema                 AS cop_cod_sistema
+                                          ,bcbcop_cod_tipo_sistema            AS cop_cod_tipo_sistema
+                                          ,bcbcop_num_rut_contraparte         AS cop_num_rut_contraparte
+                                          ,bcbcop_dv_rut_contraparte          AS cop_dv_rut_contraparte
+                                          ,bcbcop_cod_mnd_bch                 AS cop_cod_mnd_bch
+                                          ,bcbcop_num_doc                     AS cop_num_doc
+                                          ,bcbcop_tipo_operacion              AS cop_tipo_operacion
+                                          ,bcbcop_plzo_contable               AS cop_plzo_contable
+                                          ,bcbcop_num_partida_mb1             AS cop_num_partida_mb1
+                                          ,bcbcop_tipo_tasa                   AS cop_tipo_tasa
+                                          ,bcbcop_cod_ifrs                    AS cop_cod_ifrs
+                                          ,bcbcop_cod_ifrs9                   AS cop_cod_ifrs9
+                                          ,bcbcop_mon_cartera_vencida         AS cop_mon_cartera_vencida
+                                          ,bcbcop_mon_capital_venc_mo         AS cop_mon_capital_venc_mo
+                                          ,bcbcop_fec_cambio_tasa             AS cop_fec_cambio_tasa
+                                          ,bcbcop_clasif_rgo_contraparte      AS cop_clasif_rgo_contraparte
+                                          ,bcbcop_cod_pais_riesgo             AS cop_cod_pais_riesgo
+                                          ,bcbcop_fec_venc_operacion          AS cop_fec_venc_operacion
+                                          ,bcbcop_tasa_real_operacion         AS cop_tasa_real_operacion
+                                          ,bcbcop_tasa_real_anual             AS cop_tasa_real_anual
+                                          ,bcbcop_num_cuenta_gl               AS cop_num_cuenta_gl
+                                          ,bcbcop_tipo_cambio                 AS cop_tipo_cambio
+                                          ,bcbcop_fec_ini_operacion           AS cop_fec_ini_operacion
+                                          ,bcbcop_mon_cap_mora_h29_mo         AS cop_mon_cap_mora_h29_mo
+                                          ,bcbcop_mon_cap_mora_d30_h59_mo     AS cop_mon_cap_mora_d30_h59_mo
+                                          ,bcbcop_mon_cap_mora_d60_mo         AS cop_mon_cap_mora_d60_mo
+                                          ,bcbcop_mon_int_dev_xvencer_mo      AS cop_mon_int_dev_xvencer_mo
+                                          ,bcbcop_cod_producto                AS cop_cod_producto
+                                   FROM $DFAliasOrigen2 """)
+                                </pre><pre>
+        return (dfUnionFilialCop, nombreDf)
+    }
+  
+  /*
+    @author 
+    @param huemulBigDataGov: 
+    @param ControlParent: 
+    @param DFAliasOrigen1: sat_filial_bafdeu
+    @param DFAliasOrigen2: sat_filial_bcbdeu
+    @returns resultInsert: nomUnionFilialDeu
+   */
+    def UnionDeuFilial(huemulBigDataGov: huemul_BigDataGovernance, control: huemul_Control, DFAliasOrigen1: String, DFAliasOrigen2: String, fechaEjecucion: String ): (huemul_DataFrame, String) = {
+     val dfUnionFilialDeu = new huemul_DataFrame(huemulBigDataGov, control)
+     var nombreDf ="nomUnionFilialDeu"
+         dfUnionFilialDeu.DF_from_SQL(nombreDf,
+        </pre>
+        <span id="UnionDeuFilial"> </span><pre class="text-success">
+                              s""" SELECT 
+                                          TO_DATE('${fechaEjecucion}')        AS deu_fecha
+                                          ,hash_unico
+                                          ,bafdeu_llave_producto              AS deu_llave_producto
+                                          ,bafdeu_cod_sistema                 AS deu_cod_sistema
+                                          ,bafdeu_cod_tipo_sistema            AS deu_cod_tipo_sistema
+                                          ,bafdeu_fec_vencimiento             AS deu_fec_vencimiento
+                                          ,bafdeu_mon_capital_contab_mo       AS deu_mon_capital_contab_mo
+                                          ,bafdeu_mon_interes_contab_mo       AS deu_mon_interes_contab_mo
+                                          ,bafdeu_mon_capital_mnd_origen      AS deu_mon_capital_mnd_origen
+                                          ,bafdeu_mon_interes_mnd_origen      AS deu_mon_interes_mnd_origen
+                                   FROM $DFAliasOrigen1
+                                   UNION ALL
+                                   SELECT 
+                                          TO_DATE('${fechaEjecucion}')        AS deu_fecha
+                                          ,hash_unico
+                                          ,bcbdeu_llave_producto              AS deu_llave_producto
+                                          ,bcbdeu_cod_sistema                 AS deu_cod_sistema
+                                          ,bcbdeu_cod_tipo_sistema            AS deu_cod_tipo_sistema
+                                          ,bcbdeu_fec_vencimiento             AS deu_fec_vencimiento
+                                          ,bcbdeu_mon_capital_contab_mo       AS deu_mon_capital_contab_mo
+                                          ,bcbdeu_mon_interes_contab_mo       AS deu_mon_interes_contab_mo
+                                          ,bcbdeu_mon_capital_mnd_origen      AS deu_mon_capital_mnd_origen
+                                          ,bcbdeu_mon_interes_mnd_origen      AS deu_mon_interes_mnd_origen
+                                   FROM $DFAliasOrigen2 """)
+                                </pre>
+                                <pre>
+        return (dfUnionFilialDeu, nombreDf)
+    }
+    
+    /*
+    @author 
+    @param huemulBigDataGov: 
+    @param ControlParent: 
+    @param DFAliasOrigen1:
+    @param DFAliasOrigen2:
+    @param DFAliasOrigen3:  
+    @returns resultInsert: 
+   */
+    def UnionDeuTrd(huemulBigDataGov: huemul_BigDataGovernance, control: huemul_Control, DFAliasOrigen1: String, DFAliasOrigen2: String, DFAliasOrigen3: String, fechaEjecucion: String ): (huemul_DataFrame, String) = {
+     val dfUnionTrdDeu = new huemul_DataFrame(huemulBigDataGov, control)
+     var nombreDf ="nomUnionTrdDeu"
+         dfUnionTrdDeu.DF_from_SQL(nombreDf,
+        </pre>
+        <span id="UnionDeuTrd"> </span><pre class="text-success">
+                              s""" SELECT 
+                                          actrde_cod_llave_operacion      AS deu_llave_producto
+                                          ,TO_DATE('${fechaEjecucion}')   AS deu_fecha
+                                          ,actrde_vlr_inte_aju_contab     AS deu_interes_aju_contab
+                                          ,actrde_mon_cap_aju_contab      AS deu_capital_aju_contab
+                                          ,actrde_vlr_inte_termino        AS deu_interes_termino
+                                          ,actrde_mon_cap_termino         AS deu_capital_termino
+                                          ,actrde_cod_tip_sistema         AS deu_tipo_sistema
+                                          ,actrde_fec_venc                AS deu_fecha_vencimiento
+                                         
+
+                                   FROM $DFAliasOrigen1
+                                   UNION ALL
+                                   SELECT 
+                                          patrde_cod_llave_operacion      AS deu_llave_producto
+                                          ,TO_DATE('${fechaEjecucion}')   AS deu_fecha
+                                          ,patrde_vlr_inte_aju_contab     AS deu_interes_aju_contab
+                                          ,patrde_mon_cap_aju_contab      AS deu_capital_aju_contab
+                                          ,patrde_vlr_inte_termino        AS deu_interes_termino
+                                          ,patrde_mon_cap_termino         AS deu_capital_termino
+                                          ,patrde_cod_tip_sistema         AS deu_tipo_sistema
+                                          ,patrde_fec_venc                AS deu_fecha_vencimiento                                     
+
+                                   FROM $DFAliasOrigen2
+                                   UNION ALL
+                                   SELECT 
+                                          intrde_cod_llave_operacion      AS deu_llave_producto
+                                          ,TO_DATE('${fechaEjecucion}')   AS deu_fecha
+                                          ,intrde_vlr_inte_aju_contab     AS deu_interes_aju_contab
+                                          ,intrde_mon_cap_aju_contab      AS deu_capital_aju_contab
+                                          ,intrde_vlr_inte_termino        AS deu_interes_termino
+                                          ,intrde_mon_cap_termino         AS deu_capital_termino
+                                          ,intrde_cod_tip_sistema         AS deu_tipo_sistema
+                                          ,intrde_fec_venc                AS deu_fecha_vencimiento                                     
+                          
+                                   
+                                   FROM $DFAliasOrigen3 """)
+                                </pre>
+                               <pre>
+        return (dfUnionTrdDeu, nombreDf)
+    }
+    
+     /*
+    @author 
+    @param huemulBigDataGov: 
+    @param ControlParent: 
+    @param DFAliasOrigen1:
+    @param DFAliasOrigen2: 
+    @returns resultInsert: 
+   */
+    def UnionCopCot(huemulBigDataGov: huemul_BigDataGovernance, control: huemul_Control, DFAliasOrigen1: String, DFAliasOrigen2: String, fechaEjecucion: String ): (huemul_DataFrame, String) = {
+     val dfUnionCotCop = new huemul_DataFrame(huemulBigDataGov, control)
+     var nombreDf ="nomUnionCotCop"
+         dfUnionCotCop.DF_from_SQL(nombreDf,
+        </pre>
+        <span id="UnionCopCot"> </span><pre class="text-success">
+                              s""" SELECT 
+                                          actcot_llave_prod                    AS cop_llave_producto
+                                          ,TO_DATE('${fechaEjecucion}')        AS cop_fecha
+                                          ,actcot_cod_tip_sistema              AS cop_tipo_sistema
+                                          ,actcot_cod_sistema                  AS cop_cod_sistema
+                                          ,actcot_num_correlativo              AS cop_correlativo
+                                          ,actcot_cod_mnd_bch                  AS cop_mon_producto   
+                                          ,actcot_ind_reaju                    AS cop_indic_reaju     
+                                          ,actcot_cod_tip_ope                  AS cop_tipo_operacion
+                                          ,actcot_cod_part_mb1                 AS cop_partida_mb1
+                                          ,actcot_cod_plz_cont                 AS cop_plazo_contable
+                                          ,actcot_cod_cond_ope                 AS cop_condicion_operacion
+                                          ,actcot_cod_tip_cam_bal              AS cop_tipo_cambio_balance
+                                          ,actcot_fec_exp_prod                 AS cop_fec_expira_prod
+                                          ,actcot_cod_tip_tasa                 AS cop_tipo_tasa
+                                          ,actcot_cod_modo_tasa                AS cop_modo_tasa
+                                          ,actcot_vlr_tasa_real_peri           AS cop_tasa_real_periodo
+                                          ,actcot_fec_prox_cambio_tasa         AS cop_fec_prox_cambio_tasa
+                                          ,actcot_mon_cap_mo_x_vencer          AS cop_cap_mo_x_vencer
+                                          ,actcot_mon_cap_mo_mora_h29          AS cop_cap_mo_mora_h29
+                                          ,actcot_mon_cap_mn_x_vencer          AS cop_cap_mn_x_vencer
+                                          ,actcot_mon_inte_deven_mo_x_vencer   AS cop_int_dev_mo_x_vencer
+                                          ,actcot_mon_inte_deven_mn_x_vencer   AS cop_int_dev_mn_x_vencer
+                                          ,actcot_mon_reaj_deven_x_vencer      AS cop_reaj_dev_x_vencer
+                                          ,actcot_rut_de_ac                    AS cop_rut_de_ac
+                                          ,actcot_dv_de_ac                     AS cop_dv_de_ac
+                                          ,actcot_num_doc                      AS cop_num_doc
+                                          ,actcot_cod_ifrs                     AS cop_cod_ifrs
+                                          ,actcot_cod_ifrs9                    AS cop_cod_ifrs9
+
+                                   FROM $DFAliasOrigen1
+                                   UNION ALL
+                                   SELECT 
+                                          pascot_llave_prod                    AS cop_llave_producto
+                                          ,TO_DATE('${fechaEjecucion}')        AS cop_fecha
+                                          ,pascot_cod_tip_sistema              AS cop_tipo_sistema
+                                          ,pascot_cod_sistema                  AS cop_cod_sistema
+                                          ,pascot_num_correlativo              AS cop_correlativo
+                                          ,pascot_cod_mnd_bch                  AS cop_mon_producto
+                                          ,pascot_ind_reaju                    AS cop_indic_reaju
+                                          ,pascot_cod_tip_ope                  AS cop_tipo_operacion
+                                          ,pascot_cod_part_mb1                 AS cop_partida_mb1
+                                          ,pascot_cod_plz_cont                 AS cop_plazo_contable
+                                          ,pascot_cod_cond_ope                 AS cop_condicion_operacion
+                                          ,pascot_cod_tip_cam_bal              AS cop_tipo_cambio_balance
+                                          ,pascot_fec_exp_prod                 AS cop_fec_expira_prod
+                                          ,pascot_cod_tip_tasa                 AS cop_tipo_tasa
+                                          ,pascot_cod_modo_tasa                AS cop_modo_tasa
+                                          ,pascot_vlr_tasa_real_peri           AS cop_tasa_real_periodo
+                                          ,pascot_fec_prox_cambio_tasa         AS cop_fec_prox_cambio_tasa
+                                          ,pascot_mon_cap_mo_x_vencer          AS cop_cap_mo_x_vencer
+                                          ,pascot_mon_cap_mo_mora_h29          AS cop_cap_mo_mora_h29
+                                          ,pascot_mon_cap_mn_x_vencer          AS cop_cap_mn_x_vencer
+                                          ,pascot_mon_inte_deven_mo_x_vencer   AS cop_int_dev_mo_x_vencer
+                                          ,pascot_mon_inte_deven_mn_x_vencer   AS cop_int_dev_mn_x_vencer
+                                          ,pascot_mon_reaj_deven_x_vencer      AS cop_reaj_dev_x_vencer
+                                          ,pascot_rut_de_ac                    AS cop_rut_de_ac
+                                          ,pascot_dv_de_ac                     AS cop_dv_de_ac
+                                          ,pascot_num_doc                      AS cop_num_doc
+                                          ,pascot_cod_ifrs                     AS cop_cod_ifrs
+                                          ,pascot_cod_ifrs9                    AS cop_cod_ifrs9
+                                   FROM $DFAliasOrigen2 """)
+                                </pre>
+                                <pre>
+        return (dfUnionCotCop, nombreDf)
+    }
+    
+     /*
+    @author 
+    @param huemulBigDataGov: 
+    @param ControlParent: 
+    @param DFAliasOrigen1:
+    @param DFAliasOrigen2: 
+    @returns resultInsert: 
+   */
+    def UnionDeuCot(huemulBigDataGov: huemul_BigDataGovernance, control: huemul_Control, DFAliasOrigen1: String, DFAliasOrigen2: String, fechaEjecucion: String ): (huemul_DataFrame, String) = {
+     val dfUnionCotDeu = new huemul_DataFrame(huemulBigDataGov, control)
+     var nombreDf ="nomUnionCotDeu"
+         dfUnionCotDeu.DF_from_SQL(nombreDf,
+        </pre>
+        <span id="UnionDeuCot"> </span><pre class="text-success">
+                              s""" SELECT 
+                                          accode_llave_producto                AS deu_llave_producto
+                                          ,TO_DATE('${fechaEjecucion}')        AS deu_fecha
+                                          ,accode_cod_tip_sistema              AS deu_tipo_sistema
+                                          ,accode_cod_sistema                  AS deu_cod_sistema
+                                          ,accode_num_correlativo              AS deu_correlativo
+                                          ,accode_fec_venc                     AS deu_fecha_vencimiento
+                                          ,accode_mon_cap_termino              AS deu_capital_termino
+                                          ,accode_vlr_inte_termino             AS deu_interes_termino
+                                          ,accode_mon_cap_mnd_ori              AS deu_capital_aju_contab
+                                          ,accode_vlr_int_mnd_ori              AS deu_interes_aju_contab
+                                          
+
+                                   FROM $DFAliasOrigen1
+                                   UNION ALL
+                                   SELECT 
+                                          pacode_llave_producto                AS deu_llave_producto
+                                          ,TO_DATE('${fechaEjecucion}')        AS deu_fecha
+                                          ,pacode_cod_tip_sistema              AS deu_tipo_sistema
+                                          ,pacode_cod_sistema                  AS deu_cod_sistema
+                                          ,pacode_num_correlativo              AS deu_correlativo
+                                          ,pacode_fec_venc                     AS deu_fecha_vencimiento
+                                          ,pacode_mon_cap_termino              AS deu_capital_termino
+                                          ,pacode_vlr_inte_termino             AS deu_interes_termino
+                                          ,pacode_mon_cap_mnd_ori              AS deu_capital_aju_contab
+                                          ,pacode_vlr_int_mnd_ori              AS deu_interes_aju_contab
+                                          
+                                         
+                                   FROM $DFAliasOrigen2 """)
+                                </pre>
+                                <pre>
+        return (dfUnionCotDeu, nombreDf)
+    }
+    
+    /*
+    @author 
+    @param huemulBigDataGov: 
+    @param ControlParent: 
+    @param DFAliasOrigen1: BAF_CTB_FILIAL
+    @param DFAliasOrigen2: BCB_CTB_FILIAL
+    @returns resultInsert: 
+   */
+    def UnionCtbFilial(huemulBigDataGov: huemul_BigDataGovernance, control: huemul_Control, DFAliasOrigen1: String, DFAliasOrigen2: String, fechaEjecucion: String ): (huemul_DataFrame, String) = {
+     val dfUnionFilialCtb = new huemul_DataFrame(huemulBigDataGov, control)
+     var nombreDf ="nomUnionFilialCtb"
+         dfUnionFilialCtb.DF_from_SQL(nombreDf,
+        </pre>
+        <span id="UnionCtbFilial"> </span><pre class="text-success">
+                              s""" SELECT 
+                                          TO_DATE('${fechaEjecucion}') AS periodo_dia              
+                                          ,id_incremental
+                                          ,bafctb_cod_sistema          AS ctb_cod_sistema
+                                          ,bafctb_cod_mnda_bch         AS ctb_cod_mnda_bch
+                                          ,bafctb_num_partida_mb1      AS ctb_num_partida_mb1
+                                          ,bafctb_num_cta_contable     AS ctb_num_cta_contable
+                                          ,bafctb_mon_sdo_contable     AS ctb_mon_sdo_contable
+                                          ,bafctb_cod_ifrs             AS ctb_cod_ifrs
+                                          ,bafctb_cod_ifrs9            AS ctb_cod_ifrs9
+                                   FROM $DFAliasOrigen1
+                                   UNION ALL
+                                   SELECT 
+                                          TO_DATE('${fechaEjecucion}') AS periodo_dia
+                                          ,id_incremental
+                                          ,bcbctb_cod_sistema          AS ctb_cod_sistema
+                                          ,bcbctb_cod_mnda_bch         AS ctb_cod_mnda_bch
+                                          ,bcbctb_num_partida_mb1      AS ctb_num_partida_mb1
+                                          ,bcbctb_num_cta_contable     AS ctb_num_cta_contable
+                                          ,bcbctb_mon_sdo_contable     AS ctb_mon_sdo_contable
+                                          ,bcbctb_cod_ifrs             AS ctb_cod_ifrs
+                                          ,bcbctb_cod_ifrs9            AS ctb_cod_ifrs9
+                                   FROM $DFAliasOrigen2 """)
+                                </pre>
+                                <pre>
+        return (dfUnionFilialCtb, nombreDf)
+    }
+    
+    /*
+    @author 
+    @param huemulBigDataGov: 
+    @param ControlParent: 
+    @param DFAliasOrigen1:
+    @param DFAliasOrigen2:
+    @param DFAliasOrigen3:  
+    @returns resultInsert: 
+   */
+    def UnionCopTrdMes(huemulBigDataGov: huemul_BigDataGovernance, control: huemul_Control, DFAliasOrigen1: String, DFAliasOrigen2: String, DFAliasOrigen3: String, fechaEjecucion: String ): (huemul_DataFrame, String) = {
+     val dfUnionTrdCop = new huemul_DataFrame(huemulBigDataGov, control)
+     var nombreDf ="nomUnionTrdCop"
+         dfUnionTrdCop.DF_from_SQL(nombreDf,
+        </pre>
+        <span id="UnionCopTrdMes"> </span><pre class="text-success">
+                              s""" SELECT 
+                                          actrco_cod_llave_operacion     AS cop_llave_producto
+                                          ,TO_DATE('${fechaEjecucion}')  AS cop_fecha
+                                          ,actrco_cod_tip_sistema        AS cop_tipo_sistema
+                                          ,actrco_cod_moneda             AS cop_mon_producto
+                                          ,actrco_tip_operacion          AS cop_tipo_operacion
+                                          ,actrco_mon_partida_cntbl      AS cop_partida_mb1
+                                          ,actrco_tip_tasa               AS cop_tipo_tasa
+                                          ,actrco_rut_cliente            AS cop_rut_de_ac
+                                          ,actrco_dv_cliente             AS cop_dv_de_ac
+                                          ,actrco_num_operacion          AS cop_num_doc
+                                          ,actrco_fec_venc_deuda         AS cop_fec_expira_prod
+                                          ,actrco_mon_cap_contr_mnd_ori  AS cop_cap_mo_x_vencer
+                                          ,actrco_mon_int_contr_mnd_ori  AS cop_int_dev_mo_x_vencer
+                                          ,actrco_mon_cap_contr_mnd_clp  AS cop_cap_mn_x_vencer
+                                          ,actrco_mon_int_contr_mnd_clp  AS cop_int_dev_mn_x_vencer
+                                          ,actrco_cod_ifrs               AS cop_cod_ifrs
+                                          ,actrco_cod_ifrs_9             AS cop_cod_ifrs9                                          
+
+                                   FROM $DFAliasOrigen1
+                                   UNION ALL
+                                   SELECT 
+                                          patrco_cod_llave_operacion     AS cop_llave_producto
+                                          ,TO_DATE('${fechaEjecucion}')  AS cop_fecha
+                                          ,patrco_cod_tip_sistema        AS cop_tipo_sistema
+                                          ,patrco_cod_moneda             AS cop_mon_producto
+                                          ,patrco_tip_operacion          AS cop_tipo_operacion
+                                          ,patrco_mon_partida_cntbl      AS cop_partida_mb1
+                                          ,patrco_tip_tasa               AS cop_tipo_tasa
+                                          ,patrco_rut_cliente            AS cop_rut_de_ac
+                                          ,patrco_dv_cliente             AS cop_dv_de_ac
+                                          ,patrco_num_operacion          AS cop_num_doc
+                                          ,patrco_fec_venc_deuda         AS cop_fec_expira_prod
+                                          ,patrco_mon_cap_contr_mnd_ori  AS cop_cap_mo_x_vencer
+                                          ,patrco_mon_int_contr_mnd_ori  AS cop_int_dev_mo_x_vencer
+                                          ,patrco_mon_cap_contr_mnd_clp  AS cop_cap_mn_x_vencer
+                                          ,patrco_mon_int_contr_mnd_clp  AS cop_int_dev_mn_x_vencer
+                                          ,patrco_cod_ifrs               AS cop_cod_ifrs
+                                          ,patrco_cod_ifrs_9             AS cop_cod_ifrs9                                         
+
+                                   FROM $DFAliasOrigen2
+                                   UNION ALL
+                                   SELECT 
+                                          intrco_cod_llave_operacion     AS cop_llave_producto
+                                          ,TO_DATE('${fechaEjecucion}')  AS cop_fecha
+                                          ,intrco_cod_tip_sistema        AS cop_tipo_sistema
+                                          ,intrco_cod_moneda             AS cop_mon_producto
+                                          ,intrco_tip_operacion          AS cop_tipo_operacion
+                                          ,intrco_mon_partida_cntbl      AS cop_partida_mb1
+                                          ,intrco_tip_tasa               AS cop_tipo_tasa
+                                          ,intrco_rut_cliente            AS cop_rut_de_ac
+                                          ,intrco_dv_cliente             AS cop_dv_de_ac
+                                          ,intrco_num_operacion          AS cop_num_doc
+                                          ,intrco_fec_venc_deuda         AS cop_fec_expira_prod
+                                          ,intrco_mon_cap_contr_mnd_ori  AS cop_cap_mo_x_vencer
+                                          ,intrco_mon_int_contr_mnd_ori  AS cop_int_dev_mo_x_vencer
+                                          ,intrco_mon_cap_contr_mnd_clp  AS cop_cap_mn_x_vencer
+                                          ,intrco_mon_int_contr_mnd_clp  AS cop_int_dev_mn_x_vencer
+                                          ,intrco_cod_ifrs               AS cop_cod_ifrs
+                                          ,intrco_cod_ifrs_9             AS cop_cod_ifrs9                             
+                                   
+                                   FROM $DFAliasOrigen3 """)
+                                </pre>
+                                <pre>
+        return (dfUnionTrdCop, nombreDf)
+    }
+    
+    /*
+    @author 
+    @param huemulBigDataGov: 
+    @param ControlParent: 
+    @param DFAliasOrigen1:
+    @param DFAliasOrigen2:
+    @param DFAliasOrigen3:  
+    @returns resultInsert: 
+   */
+    def UnionDeuTrdMes(huemulBigDataGov: huemul_BigDataGovernance, control: huemul_Control, DFAliasOrigen1: String, DFAliasOrigen2: String, DFAliasOrigen3: String, fechaEjecucion: String ): (huemul_DataFrame, String) = {
+     val dfUnionTrdDeu = new huemul_DataFrame(huemulBigDataGov, control)
+     var nombreDf ="nomUnionTrdDeu"
+         dfUnionTrdDeu.DF_from_SQL(nombreDf,
+        </pre>
+        <span id="UnionDeuTrdMes"> </span><pre class="text-success">
+                              s""" SELECT 
+                                          actrde_cod_llave_operacion      AS deu_llave_producto
+                                          ,TO_DATE('${fechaEjecucion}')   AS deu_fecha
+                                          ,actrde_mon_inte_mnd_ori        AS deu_interes_aju_contab
+                                          ,actrde_mon_cap_mnd_ori         AS deu_capital_aju_contab
+                                          ,actrde_mon_inte_contr_mnd_ori  AS deu_interes_termino
+                                          ,actrde_mon_cap_contr_mnd_ori   AS deu_capital_termino
+                                          ,actrde_cod_tip_sistema         AS deu_tipo_sistema
+                                          ,actrde_fec_venc_deuda          AS deu_fecha_vencimiento
+                                         
+
+                                   FROM $DFAliasOrigen1
+                                   UNION ALL
+                                   SELECT 
+                                          patrde_cod_llave_operacion      AS deu_llave_producto
+                                          ,TO_DATE('${fechaEjecucion}')   AS deu_fecha
+                                          ,patrde_mon_inte_mnd_ori        AS deu_interes_aju_contab
+                                          ,patrde_mon_cap_mnd_ori         AS deu_capital_aju_contab
+                                          ,patrde_mon_inte_contr_mnd_ori  AS deu_interes_termino
+                                          ,patrde_mon_cap_contr_mnd_ori   AS deu_capital_termino
+                                          ,patrde_cod_tip_sistema         AS deu_tipo_sistema
+                                          ,patrde_fec_venc_deuda          AS deu_fecha_vencimiento                                     
+
+                                   FROM $DFAliasOrigen2
+                                   UNION ALL
+                                   SELECT 
+                                          intrde_cod_llave_operacion      AS deu_llave_producto
+                                          ,TO_DATE('${fechaEjecucion}')   AS deu_fecha
+                                          ,intrde_mon_inte_mnd_ori        AS deu_interes_aju_contab
+                                          ,intrde_mon_cap_mnd_ori         AS deu_capital_aju_contab
+                                          ,intrde_mon_inte_contr_mnd_ori  AS deu_interes_termino
+                                          ,intrde_mon_cap_contr_mnd_ori   AS deu_capital_termino
+                                          ,intrde_cod_tip_sistema         AS deu_tipo_sistema
+                                          ,intrde_fec_venc_deuda          AS deu_fecha_vencimiento                                     
+                          
+                                   
+                                   FROM $DFAliasOrigen3 """)
+                                </pre>
+                                <pre>
+        return (dfUnionTrdDeu, nombreDf)
+    }
+    
+    /*
+    @author 
+    @param huemulBigDataGov: 
+    @param ControlParent: 
+    @param DFAliasOrigen1: 
+    @param DFAliasOrigen2: 
+    @returns resultInsert: 
+   */
+    def UnionCopMrxMes(huemulBigDataGov: huemul_BigDataGovernance, control: huemul_Control, DFAliasOrigen1: String, DFAliasOrigen2: String, fechaEjecucion: String ): (huemul_DataFrame, String) = {
+     val dfUnionMrxCop = new huemul_DataFrame(huemulBigDataGov, control)
+     var nombreDf ="nomUnionMrxCop"
+         dfUnionMrxCop.DF_from_SQL(nombreDf,
+        </pre>
+        <span id="UnionCopMrxMes"> </span><pre class="text-success">
+          s""" SELECT
+
+                        acmrco_cod_llave_operacion                                   AS cop_llave_producto
+                        ,TO_DATE('${fechaEjecucion}')                                AS cop_fecha
+                        ,acmrco_cod_tip_sistema                                      AS cop_tipo_sistema
+                        ,acmrco_cod_moneda                                           AS cop_mon_producto
+                        ,acmrco_tip_operacion                                        AS cop_tipo_operacion
+                        ,acmrco_mon_partida_cntbl                                    AS cop_partida_mb1                       
+                        ,acmrco_tip_tasa                                             AS cop_tipo_tasa
+                        ,acmrco_rut_cliente                                          AS cop_rut_de_ac
+                        ,acmrco_dv_cliente                                           AS cop_dv_de_ac
+                        ,acmrco_num_operacion                                        AS cop_num_doc                        
+                        ,acmrco_mon_cap_mnd_ori_venc                                 AS cop_cap_mo_x_vencer             
+                        ,acmrco_fec_prox_cambio_tasa                                 AS cop_fec_prox_cambio_tasa
+                        ,acmrco_fec_venc_deuda                                       AS cop_fec_expira_prod
+                        ,acmrco_mon_mtm_operac                                       AS cop_cartera_vencida_mo                       
+                        ,acmrco_cod_ifrs                                             AS cop_cod_ifrs
+                        ,acmrco_cod_ifrs_9                                           AS cop_cod_ifrs9                        
+                        
+              FROM $DFAliasOrigen1
+              
+              UNION ALL
+              
+              SELECT 
+                        pamrco_cod_llave_operacion                                   AS cop_llave_producto
+                        ,TO_DATE('${fechaEjecucion}')                                AS cop_fecha
+                        ,pamrco_cod_tip_sistema                                      AS cop_tipo_sistema
+                        ,pamrco_cod_moneda                                           AS cop_mon_producto
+                        ,pamrco_tip_operacion                                        AS cop_tipo_operacion
+                        ,pamrco_mon_partida_cntbl                                    AS cop_partida_mb1                       
+                        ,pamrco_tip_tasa                                             AS cop_tipo_tasa
+                        ,pamrco_rut_cliente                                          AS cop_rut_de_ac
+                        ,pamrco_dv_cliente                                           AS cop_dv_de_ac
+                        ,pamrco_num_operacion                                        AS cop_num_doc
+                        ,pamrco_mon_cap_mnd_ori_venc                                 AS cop_cap_mo_x_vencer                                              
+                        ,pamrco_fec_prox_cambio_tasa                                 AS cop_fec_prox_cambio_tasa
+                        ,pamrco_fec_venc_deuda                                       AS cop_fec_expira_prod
+                        ,pamrco_mon_mtm_operac                                       AS cop_cartera_vencida_mo
+                        ,pamrco_cod_ifrs                                             AS cop_cod_ifrs
+                        ,pamrco_cod_ifrs_9                                           AS cop_cod_ifrs9
+              FROM $DFAliasOrigen2 
+            </pre>
+            <pre>
+              """)
+            
+        return (dfUnionMrxCop, nombreDf)
+    }
+    
+    /*
+    @author 
+    @param huemulBigDataGov: 
+    @param ControlParent: 
+    @param DFAliasOrigen1: 
+    @param DFAliasOrigen2: 
+    @returns resultInsert: 
+   */
+    def UnionDeuMrxMes(huemulBigDataGov: huemul_BigDataGovernance, control: huemul_Control, DFAliasOrigen1: String, DFAliasOrigen2: String, fechaEjecucion: String ): (huemul_DataFrame, String) = {
+     val dfUnionMrxDeu = new huemul_DataFrame(huemulBigDataGov, control)
+     var nombreDf ="nomUnionMrxDeu"
+         dfUnionMrxDeu.DF_from_SQL(nombreDf,
+        </pre>
+        <span id="UnionDeuMrxMes"> </span><pre class="text-success">
+          s""" SELECT
+
+                        acmrde_cod_llave_operacion                                   AS deu_llave_producto
+                        ,TO_DATE('${fechaEjecucion}')                                AS deu_fecha
+                        ,acmrde_fec_venc_deud                                        AS deu_fecha_vencimiento
+                        ,acmrde_cod_sistema                                          AS deu_cod_sistema
+                        ,acmrde_mon_cap_mnd_ori                                      AS deu_capital_termino
+                        ,acmrde_mon_int_contractual                                  AS deu_interes_termino
+                        ,acmrde_cod_tip_sistema                                      AS deu_tipo_sistema
+                        ,acmrde_mon_cap_mtm_mnd_ori                                  AS deu_capital_aju_contab
+                        ,acmrde_mon_int_mtm_mnd_ori                                  AS deu_interes_aju_contab
+                        
+                        
+              FROM $DFAliasOrigen1
+              
+              UNION ALL
+              
+              SELECT 
+                        pamrde_cod_llave_operacion                                   AS deu_llave_producto
+                        ,TO_DATE('${fechaEjecucion}')                                AS deu_fecha
+                        ,pamrde_fec_venc_deud                                        AS deu_fecha_vencimiento
+                        ,pamrde_cod_sistema                                          AS deu_cod_sistema
+                        ,pamrde_mon_cap_mnd_ori                                      AS deu_capital_termino
+                        ,pamrde_mon_int_contractual                                  AS deu_interes_termino
+                        ,pamrde_cod_tip_sistema                                      AS deu_tipo_sistema
+                        ,pamrde_mon_cap_mtm_mnd_ori                                  AS deu_capital_aju_contab
+                        ,pamrde_mon_int_mtm_mnd_ori                                  AS deu_interes_aju_contab                        
+                        
+              FROM $DFAliasOrigen2 
+            </pre>
+            <pre>
+                """)
+            
+                return (dfUnionMrxDeu, nombreDf)
+            }
+            
+          
+        }
+            </pre>
+        </body>
+        </html>         

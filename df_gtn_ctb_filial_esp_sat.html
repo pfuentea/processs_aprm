@@ -1,0 +1,15 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    SELECT * FROM ${universalGcoDatabase}.sat_gtn_ctb_filial_esp  WHERE gtctfi_fec_act = (SELECT MAX(gtctfi_fec_act) 
+                                                                                                  FROM ${universalGcoDatabase}.${SatGtnCtbFilialEsp} 
+                                                                                                  WHERE gtctfi_fec_act <= TO_DATE('${fechaEjecucion}'))
+                                                                                   AND gtctfi_cod_reporte = 'APRM' 
+</body>
+</html>

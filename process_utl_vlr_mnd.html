@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css">
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+</head>
+<body>
+    
+    <pre>
+
+        package cl.bancochile.fdd.reporting.r07.utl.process
+    
+    //Importancia generica.
+    import cl.bancochile.fdd.todos.globalSettings._
+    import com.huemulsolutions.bigdata.common._
+    import com.huemulsolutions.bigdata.control._
+    import org.apache.spark.sql.types._
+    import java.util.Calendar
+    import java.time._
+    import spark.implicits._
+    import org.apache.spark.sql.functions._
+    import org.apache.spark.sql.DataFrame
+    
+    /**
+     * Objeto proceso de masterización en tabla dimensional.
+     */
+    object process_utl_vlr_mnd{
+        /*
+        @author 
+        @param huemulBigDataGov: 
+        @param ControlParent: 
+        @param DFAliasOrigen1: df_met_dia_sat
+        @param DFAliasOrigen2: df_valor_uf_sat
+        @returns resultInsert: 
+       */
+        def master(huemulBigDataGov: huemul_BigDataGovernance, control: huemul_Control, DFAliasOrigen1: String, DFAliasOrigen2: String ): (huemul_DataFrame, String) = {
+         control.NewStep(s"Creación de tabla valor_moneda")
+         println(s"Creación de tabla valor_moneda")
+         val dfValorMoneda = new huemul_DataFrame(huemulBigDataGov, control)
+         var nombreDf ="nomValorMoneda"
+             dfValorMoneda.DF_from_SQL(nombreDf,
+             </pre>
+             <span id="master"> </span><pre class="text-success">
+                                  s""" SELECT distinct fecha, cod_interno, paridad, tipo_cambio
+                                    FROM(
+                                       SELECT
+                                               periodo_dia        AS fecha
+                                              ,met_vlr_tip_cambio AS tipo_cambio
+                                              ,met_vlr_par_cont   AS paridad
+                                              ,met_moneda_cod_bch AS cod_interno
+                                       FROM <span>$DFAliasOrigen1</span>
+                                       <span>(SELECT * FROM ${universalSgtDatabase}.sat_met_dia WHERE periodo_dia = TO_DATE('${fechaEjecucion}'))</span>
+                                       UNION ALL
+                                       SELECT 
+                                               valuf_fec_valor    AS fecha
+                                              ,valuf_val_uf_clp   AS tipo_cambio
+                                              ,0                  AS paridad
+                                              ,valuf_cod_bch      AS cod_interno
+                                       FROM $DFAliasOrigen2 )""")
+                                    </pre>
+                                    <pre>      
+            return (dfValorMoneda, nombreDf)
+        }
+      
+      
+      
+    }
+    </pre>
+</body>
+</html>

@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css">
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/js/bootstrap.bundle.min.js"></script>
+
+</head>
+<body>
+    
+    <div class="container">
+        <h1>process_utl_sabana_datos_filial</h1>
+    
+
+<pre>
+
+package cl.bancochile.fdd.reporting.r07.utl.process
+
+//Importancia generica.
+import cl.bancochile.fdd.todos.globalSettings._
+import com.huemulsolutions.bigdata.common._
+import com.huemulsolutions.bigdata.control._
+import org.apache.spark.sql.types._
+import java.util.Calendar
+import java.time._
+import spark.implicits._
+import org.apache.spark.sql.functions._
+import org.apache.spark.sql.DataFrame
+
+/**
+ * Objeto proceso de masterización en tabla dimensional.
+ */
+object process_utl_sabana_datos_filial{
+    /*
+    @author 
+    @param huemulBigDataGov: 
+    @param ControlParent: 
+    @param DFAliasOrigen1: ICP_Cop_Filial
+    @param DFAliasOrigen2: ICP_Deu_Filial
+    @param DFAliasOrigen3: APRM_C43_lineaproducto
+    @param DFAliasOrigen4: Valor_Moneda
+    @param DFAliasOrigen5: GTN_Compo_Institucional
+    @param DFAliasOrigen6: comp_institucional
+    @param DFAliasOrigen7: banda
+    @returns resultInsert: 
+   */
+    def joinSabana1(huemulBigDataGov: huemul_BigDataGovernance, control: huemul_Control,fechaEjecucion: String, DFAliasOrigen1: String, DFAliasOrigen2: String,DFAliasOrigen3: String, DFAliasOrigen4: String,DFAliasOrigen5: String,DFAliasOrigen6: String,DFAliasOrigen7: String ): (huemul_DataFrame, String) = {
+     control.NewStep(s"Creación de tabla union de sabada datos filial")
+     println(s"Creación de tabla union de sabada datos filial 1")
+     val dfJoinSabana1 = new huemul_DataFrame(huemulBigDataGov, control)
+     var nombreDf ="nomJoinSabana1"
+         dfJoinSabana1.DF_from_SQL(nombreDf,
+      </pre>
+      <span id="joinSabana1"> </span><pre class="text-success">
+                              s""" SELECT cop_fecha
+                                         ,cop_num_rut_contraparte
+                                         ,cop_dv_rut_contraparte
+                                         ,cop_llave_producto
+                                         ,cop_cod_sistema
+                                         ,CASE WHEN cop_tipo_tasa = 'V' THEN cop_fec_cambio_tasa
+                                               ELSE cop_fec_venc_operacion 
+                                               END                                                                                                                 AS Fecha_Vcto
+                                         ,CASE WHEN cop_num_rut_contraparte < 35000000 THEN 'Persona natural'
+                                               ELSE comins_dsc_tipo_inst 
+                                               END                                                                                                                 AS Portfolio
+                                         ,CONCAT('Cartera ',(CASE WHEN SUBSTRING(cop_llave_producto,1,3) IN ('SPS','SAS') THEN 'SWP' 
+                                                                  WHEN SUBSTRING(cop_llave_producto,1,3) IN ('FWD','SIM') THEN SUBSTRING(cop_llave_producto,1,3)
+                                                                  ELSE SUBSTRING(cop_llave_producto,1,4) 
+                                                                  END))                                                                                            AS Tipo_Index
+                                         ,CASE WHEN cop_tipo_tasa = 'V' THEN (CASE WHEN DATEDIFF(cop_fec_cambio_tasa,TO_DATE('${fechaEjecucion}')) <= 0 THEN 1 
+                                                                                   ELSE DATEDIFF(cop_fec_cambio_tasa,TO_DATE('${fechaEjecucion}'))  
+                                                                                   END) 
+                                               ELSE DATEDIFF(cop_fec_venc_operacion,TO_DATE('${fechaEjecucion}')) 
+                                               END                                                                                                                 AS Residual
+                                         ,mactof_cod_origen
+                                         ,mactof_cod_tabla
+                                         ,plaban_cod_banda                                                                                                         AS Banda
+                                         ,cop_tipo_tasa
+                                         ,CASE WHEN cop_tipo_sistema = 'I' AND deu_mon_capital_mnd_origen > 0 THEN 'A'
+                                               WHEN cop_tipo_sistema = 'I' AND deu_mon_capital_mnd_origen < 0 THEN 'P'
+                                          ELSE cop_tipo_sistema 
+                                          END                                                                                                                      AS cop_tipo_sistema
+                                         ,CASE WHEN cop_cod_mnd_bch = 1  THEN 1
+                                               WHEN cop_cod_mnd_bch = 98 THEN 2
+                                               ELSE 3 
+                                               END                                                                                                                 AS Tipo_Moneda
+                                         ,cop_cod_mnd_bch
+                                         ,cop_num_partida_mb1
+                                         ,cop_num_cuenta_gl
+                                         ,CASE WHEN cop_cod_mnd_bch = 1 THEN 1 
+                                               ELSE tipo_cambio 
+                                               END                                                                                                                 AS tipo_cambio
+                                         ,deu_mon_capital_mnd_origen                                                                                               AS DEU_CAPITAL_TERMINO
+                                         ,deu_mon_interes_mnd_origen                                                                                               AS DEU_INTERES_TERMINO
+                                         ,CASE WHEN cop_cod_mnd_bch = 1 THEN deu_mon_capital_mnd_origen 
+                                               ELSE deu_mon_capital_mnd_origen * tipo_cambio 
+                                               END                                                                                                                 AS Capital_CLP
+                                         ,CASE WHEN cop_cod_mnd_bch = 1 THEN deu_mon_interes_mnd_origen 
+                                               ELSE deu_mon_interes_mnd_origen * tipo_cambio 
+                                               END                                                                                                                 AS Interes_CLP
+                                         ,cop_cod_ifrs
+                                         ,cop_cod_ifrs9
+
+                                   FROM $DFAliasOrigen1
+                                   LEFT JOIN $DFAliasOrigen2 
+                                        ON cop_llave_producto = deu_llave_producto
+
+                                   LEFT JOIN $DFAliasOrigen3
+                                        ON (cop_num_partida_mb1 BETWEEN mactof_cod_cta_mb1_ini AND mactof_cod_cta_mb1_fin) 
+                                        AND mactof_cod_tabla = '9'
+                                        AND (cop_num_cuenta_gl BETWEEN (CASE WHEN mactof_cod_cta_ini <> '9999' THEN mactof_cod_cta_ini 
+                                                                             ELSE cop_num_cuenta_gl 
+                                                                             END) 
+                                        AND (CASE WHEN mactof_cod_cta_fin <> '9999' THEN mactof_cod_cta_fin 
+                                                  ELSE cop_num_cuenta_gl 
+                                                  END))
+                                   LEFT JOIN $DFAliasOrigen4
+                                        ON cop_cod_mnd_bch = Cod_Interno
+
+                                   LEFT JOIN $DFAliasOrigen5 
+                                        ON cop_num_rut_contraparte = cliicp_num_rut
+
+                                   LEFT JOIN $DFAliasOrigen6 
+                                        ON cliicp_cod_inst_comp = comins_cod_inst 
+
+                                   LEFT JOIN $DFAliasOrigen7
+                                        ON (CASE WHEN cop_tipo_tasa = 'V' THEN (CASE WHEN DATEDIFF(cop_fec_cambio_tasa,TO_DATE('${fechaEjecucion}')) <= 0 THEN 1 
+                                                                                     ELSE DATEDIFF(cop_fec_cambio_tasa,TO_DATE('${fechaEjecucion}')) 
+                                                                                     END)
+                                                 ELSE DATEDIFF(cop_fec_venc_operacion,TO_DATE('${fechaEjecucion}')) 
+                                                 END ) > plaban_vlr_plazo_min 
+                                        AND (CASE WHEN cop_tipo_tasa = 'V' THEN (CASE WHEN DATEDIFF(cop_fec_cambio_tasa,TO_DATE('${fechaEjecucion}')) <= 0 THEN 1 
+                                                                                      ELSE DATEDIFF(cop_fec_cambio_tasa,TO_DATE('${fechaEjecucion}')) 
+                                                                                      END)
+                                                 ELSE DATEDIFF(cop_fec_venc_operacion,TO_DATE('${fechaEjecucion}')) 
+                                                 END ) <= plaban_vlr_plazo_max
+ 
+                                   WHERE cop_cod_producto NOT IN ('ACC','CFI','ETF')
+                                         AND mactof_cod_ind_inc = 'S'
+                                         AND mactof_cod_ori_prd_ctb = 'P'
+                                         AND cop_cod_mnd_bch NOT IN (1,98)
+                                         AND SUBSTRING(cop_llave_producto,1,4) NOT IN ('CONT')
+                                         AND SUBSTRING(cop_llave_producto,1,4) NOT IN ('COCC')
+                                         AND plaban_cod_rep_normativo = 'R07'
+                                   
+                                   UNION ALL
+                                   
+                                   SELECT cop_fecha
+                                         ,cop_num_rut_contraparte
+                                         ,cop_dv_rut_contraparte
+                                         ,cop_llave_producto
+                                         ,cop_cod_sistema
+                                         ,CASE WHEN cop_tipo_tasa = 'V' THEN cop_fec_cambio_tasa
+                                               ELSE cop_fec_venc_operacion 
+                                               END                                                                                                                 AS Fecha_Vcto
+                                         ,CASE WHEN cop_num_rut_contraparte < 35000000 THEN 'Persona natural'
+                                               ELSE comins_dsc_tipo_inst 
+                                               END                                                                                                                 AS Portfolio
+                                         ,CONCAT('Cartera ',(CASE WHEN SUBSTRING(cop_llave_producto,1,3) IN ('SPS','SAS') THEN 'SWP' 
+                                                                  WHEN SUBSTRING(cop_llave_producto,1,3) IN ('FWD','SIM') THEN SUBSTRING(cop_llave_producto,1,3)
+                                                                  ELSE SUBSTRING(cop_llave_producto,1,4) 
+                                                                  END))                                                                                            AS Tipo_Index
+                                         ,CASE WHEN cop_tipo_tasa = 'V' THEN (CASE WHEN DATEDIFF(cop_fec_cambio_tasa,TO_DATE('${fechaEjecucion}')) <= 0 THEN 1 
+                                                                                   ELSE DATEDIFF(cop_fec_cambio_tasa,TO_DATE('${fechaEjecucion}'))  
+                                                                                   END) 
+                                               ELSE DATEDIFF(cop_fec_venc_operacion,TO_DATE('${fechaEjecucion}')) 
+                                               END                                                                                                                 AS Residual
+                                         ,mactof_cod_origen
+                                         ,mactof_cod_tabla
+                                         ,plaban_cod_banda                                                                                                         AS Banda
+                                         ,cop_tipo_tasa
+                                         ,CASE WHEN cop_tipo_sistema = 'I' AND deu_mon_capital_mnd_origen > 0 THEN 'A'
+                                               WHEN cop_tipo_sistema = 'I' AND deu_mon_capital_mnd_origen < 0 THEN 'P'
+                                               ELSE cop_tipo_sistema 
+                                               END                                                                                                                 AS cop_tipo_sistema
+                                         ,CASE WHEN cop_cod_mnd_bch = 1  THEN 1
+                                               WHEN cop_cod_mnd_bch = 98 THEN 2
+                                               ELSE 3
+                                               END                                                                                                                 AS Tipo_Moneda
+                                         ,cop_cod_mnd_bch
+                                         ,cop_num_partida_mb1
+                                         ,cop_num_cuenta_gl
+                                         ,CASE WHEN cop_cod_mnd_bch = 1 THEN 1 
+                                               ELSE tipo_cambio 
+                                               END                                                                                                                 AS tipo_cambio
+                                         ,deu_mon_capital_mnd_origen                                                                                               AS DEU_CAPITAL_TERMINO
+                                         ,deu_mon_interes_mnd_origen                                                                                               AS DEU_INTERES_TERMINO
+                                         ,CASE WHEN cop_cod_mnd_bch = 1 THEN deu_mon_capital_mnd_origen 
+                                               ELSE deu_mon_capital_mnd_origen * tipo_cambio 
+                                               END                                                                                                                 AS Capital_CLP
+                                         ,CASE WHEN cop_cod_mnd_bch = 1 THEN deu_mon_interes_mnd_origen 
+                                               ELSE deu_mon_interes_mnd_origen * tipo_cambio 
+                                               END                                                                                                                 AS Interes_CLP
+                                         ,cop_cod_ifrs
+                                         ,cop_cod_ifrs9
+
+                                   FROM $DFAliasOrigen1
+                                   LEFT JOIN $DFAliasOrigen2 
+                                        ON cop_llave_producto = deu_llave_producto
+
+                                   LEFT JOIN $DFAliasOrigen3
+                                        ON (cop_num_partida_mb1 BETWEEN mactof_cod_cta_mb1_ini AND mactof_cod_cta_mb1_fin) 
+                                        AND mactof_cod_tabla = '9'
+                                        AND (cop_num_cuenta_gl BETWEEN (CASE WHEN mactof_cod_cta_ini <> '9999' THEN mactof_cod_cta_ini 
+                                                                             ELSE cop_num_cuenta_gl END) 
+                                        AND (CASE WHEN mactof_cod_cta_fin <> '9999' THEN mactof_cod_cta_fin 
+                                                  ELSE cop_num_cuenta_gl END))
+                                   LEFT JOIN $DFAliasOrigen4
+                                        ON cop_cod_mnd_bch = Cod_Interno
+
+                                   LEFT JOIN $DFAliasOrigen5 
+                                        ON cop_num_rut_contraparte = cliicp_num_rut
+
+                                   LEFT JOIN $DFAliasOrigen6 
+                                        ON cliicp_cod_inst_comp = comins_cod_inst 
+
+                                   LEFT JOIN $DFAliasOrigen7
+                                        ON (CASE WHEN cop_tipo_tasa = 'V' THEN (CASE WHEN DATEDIFF(cop_fec_cambio_tasa,TO_DATE('${fechaEjecucion}')) <= 0 THEN 1 
+                                                                                     ELSE DATEDIFF(cop_fec_cambio_tasa,TO_DATE('${fechaEjecucion}')) 
+                                                                                     END)
+                                                 ELSE DATEDIFF(cop_fec_venc_operacion,TO_DATE('${fechaEjecucion}')) 
+                                                 END ) > plaban_vlr_plazo_min 
+                                        AND (CASE WHEN cop_tipo_tasa = 'V' THEN (CASE WHEN DATEDIFF(cop_fec_cambio_tasa,TO_DATE('${fechaEjecucion}')) <= 0 THEN 1 
+                                                                                      ELSE DATEDIFF(cop_fec_cambio_tasa,TO_DATE('${fechaEjecucion}')) 
+                                                                                      END)
+                                                 ELSE DATEDIFF(cop_fec_venc_operacion,TO_DATE('${fechaEjecucion}')) 
+                                                 END ) <= plaban_vlr_plazo_max
+ 
+                                   WHERE mactof_cod_ind_inc = 'S'
+                                         AND mactof_cod_ori_prd_ctb = 'P'
+                                         AND (cop_cod_producto IS NULL OR  cop_cod_producto = '')
+                                         AND cop_cod_mnd_bch NOT IN (1,98)
+                                         AND SUBSTRING(cop_llave_producto,1,4) NOT IN ('CONT')
+                                         AND SUBSTRING(cop_llave_producto,1,4) IN ('COCC')
+                                         AND plaban_cod_rep_normativo = 'R07'
+                                   """)
+                                   </pre>
+                                   <pre>
+        return (dfJoinSabana1, nombreDf)
+    }
+  
+    /*
+    @author 
+    @param huemulBigDataGov: 
+    @param ControlParent: 
+    @param DFAliasOrigen1: ICP_Ctb_Filial
+    @param DFAliasOrigen2: ICP_Ctb_Filial_MX
+    @param DFAliasOrigen3: Valor_Moneda
+    @returns resultInsert: 
+   */
+    def joinSabana2(huemulBigDataGov: huemul_BigDataGovernance, control: huemul_Control,fechaEjecucion: String,UltimoDiaMes: String, DFAliasOrigen1: String, DFAliasOrigen2: String,DFAliasOrigen3: String ): (huemul_DataFrame, String) = {
+     control.NewStep(s"Creación de tabla union de sabada datos filial 2 contable")
+     println(s"Creación de tabla union de sabada datos filial 2 contable")
+     val dfJoinSabana2 = new huemul_DataFrame(huemulBigDataGov, control)
+     var nombreDf ="nomJoinSabana2"
+         dfJoinSabana2.DF_from_SQL(nombreDf,
+      </pre>
+      <span id="joinSabana2"> </span><pre class="text-success">
+                              s""" SELECT TO_DATE('${fechaEjecucion}')                        AS periodo_dia
+                                          ,' '                                                AS RUT
+                                          ,' '                                                AS DV
+                                          ,gtctfi_glo_cta_fil
+                                          ,ctb_cod_sistema
+                                          ,TO_DATE('${UltimoDiaMes}')                         AS F_Vcto
+                                          ,'CTB'                                              AS Portfolio
+                                          ,'Contabilidad'                                     AS Index
+                                          ,'1'                                                AS Residual
+                                          , gtctfi_cod_origen
+                                          ,'9'                                                AS Tabla
+                                          ,'1'                                                AS Banda
+                                          ,''                                                 AS Tipo_Tasa
+                                          ,CASE WHEN ctb_num_partida_mb1 <  3000 THEN 'A'
+                                                WHEN ctb_num_partida_mb1 >= 3000 THEN 'P' 
+                                                END                                           AS Tipo_Sistema
+                                          ,'3'                                                AS Tipo_Moneda
+                                          ,gtctfi_cod_mnd_bch                                 AS Moneda
+                                          ,ctb_num_partida_mb1
+                                          ,ctb_num_cta_contable
+                                          ,tipo_cambio
+                                          ,ctb_mon_sdo_contable/Tipo_Cambio                   AS Capital_MO
+                                          ,0                                                  AS Interes_MO
+                                          ,ctb_mon_sdo_contable                               AS Capital_CLP
+                                          ,0                                                  AS Interes_CLP
+                                          ,ctb_cod_ifrs                                       AS cop_cod_ifrs
+                                          ,ctb_cod_ifrs9                                      AS cop_cod_ifrs9
+                                   FROM $DFAliasOrigen1
+                                   RIGHT JOIN $DFAliasOrigen2 
+                                         ON ctb_num_cta_contable = gtctfi_cod_cta_fil
+                                   LEFT JOIN $DFAliasOrigen3
+                                         ON gtctfi_cod_mnd_bch = cod_interno
+                                   WHERE gtctfi_cod_tip_cta = 'ME'
+                                   
+                                   """)
+                                   </pre>
+                                   <pre>
+        return (dfJoinSabana2, nombreDf)
+    }
+    
+    /*
+    @author 
+    @param huemulBigDataGov: 
+    @param ControlParent: 
+    @param DFAliasOrigen1: dfJoinSabana1
+    @param DFAliasOrigen2: dfJoinSabana2
+    @returns resultInsert: union de ambos df para obtener data final utilizada en sabana filial dia
+   */
+    def unionSabana(huemulBigDataGov: huemul_BigDataGovernance, control: huemul_Control,fechaEjecucion: String, DFAliasOrigen1: String, DFAliasOrigen2: String): (huemul_DataFrame, String) = {
+     control.NewStep(s"Creación de tabla union de sabada datos filial final")
+     println(s"Creación de tabla union de sabada datos filial final")
+     val dfUnionSabana = new huemul_DataFrame(huemulBigDataGov, control)
+     var nombreDf ="nomdfUnionSabana"
+         dfUnionSabana.DF_from_SQL(nombreDf,
+      </pre>
+      <span id="unionSabana"> </span><pre class="text-success">
+                              s""" SELECT cop_fecha                    AS fecha
+                                          ,cop_num_rut_contraparte     AS rut
+                                          ,cop_dv_rut_contraparte      AS dv
+                                          ,cop_llave_producto          AS llave
+                                          ,cop_cod_sistema             AS sistema
+                                          ,Fecha_Vcto                  AS fecha_vcto
+                                          ,''                          AS tipo_flujo
+                                          ,Portfolio                   AS Portfolio
+                                          ,tipo_index                  AS tipo_index
+                                          ,Residual                    AS residual
+                                          ,mactof_cod_origen           AS origen
+                                          ,mactof_cod_tabla            AS registro
+                                          ,Banda                       AS banda
+                                          ,cop_tipo_tasa               AS tipo_tasa
+                                          ,cop_tipo_sistema            AS tipo_sistema
+                                          ,Tipo_Moneda                 AS tipo_moneda
+                                          ,cop_cod_mnd_bch             AS moneda
+                                          ,cop_num_partida_mb1         AS cod_mb1
+                                          ,cop_num_cuenta_gl           AS tipo_op
+                                          ,tipo_cambio                 AS tipo_cambio
+                                          ,DEU_CAPITAL_TERMINO         AS capital_mo
+                                          ,DEU_INTERES_TERMINO         AS interes_mo
+                                          ,Capital_CLP                 AS capital_clp
+                                          ,Interes_CLP                 AS interes_clp
+                                          ,cop_cod_ifrs                AS cod_ifrs
+                                          ,cop_cod_ifrs9               AS cod_ifrs9
+                                   FROM $DFAliasOrigen1
+                                   UNION ALL
+                                   SELECT periodo_dia                  AS fecha
+                                          ,RUT                         AS rut
+                                          ,DV                          AS dv
+                                          ,gtctfi_glo_cta_fil          AS llave
+                                          ,ctb_cod_sistema             AS sistema
+                                          ,F_Vcto                      AS fecha_vcto
+                                          ,''                          AS tipo_flujo
+                                          ,Portfolio                   AS Portfolio
+                                          ,Index                       AS tipo_index
+                                          ,Residual                    AS residual
+                                          ,gtctfi_cod_origen           AS origen
+                                          ,Tabla                       AS registro
+                                          ,Banda                       AS banda
+                                          ,Tipo_Tasa                   AS tipo_tasa
+                                          ,Tipo_Sistema                AS tipo_sistema
+                                          ,Tipo_Moneda                 AS tipo_moneda
+                                          ,Moneda                      AS moneda
+                                          ,ctb_num_partida_mb1         AS cod_mb1
+                                          ,ctb_num_cta_contable        AS tipo_op
+                                          ,tipo_cambio                 AS tipo_cambio
+                                          ,Capital_MO                  AS capital_mo
+                                          ,Interes_MO                  AS interes_mo
+                                          ,Capital_CLP                 AS capital_clp
+                                          ,Interes_CLP                 AS interes_clp
+                                          ,cop_cod_ifrs                AS cod_ifrs
+                                          ,cop_cod_ifrs9               AS cod_ifrs9
+                                   FROM $DFAliasOrigen2
+                                   
+                                   """)
+                                   </pre>
+                                   <pre>
+        return (dfUnionSabana, nombreDf)
+    }
+    
+    /*
+    @author 
+    @param huemulBigDataGov: 
+    @param ControlParent: 
+    @param DFAliasOrigen1: dfUnionSabana
+    @param DFAliasOrigen2: df_factor_moneda_esp_sat
+    @param DFAliasOrigen2: df_aprm_exposicion_moneda_sat
+    @returns resultInsert: union de ambos df para obtener data final utilizada en sabana filial dia
+   */
+    def sabanaFilialDia(huemulBigDataGov: huemul_BigDataGovernance, control: huemul_Control,fechaEjecucion: String, DFAliasOrigen1: String, DFAliasOrigen2: String, DFAliasOrigen3: String): (huemul_DataFrame, String) = {
+     control.NewStep(s"Creación de tabla sabada datos filial Dia final")
+     println(s"Creación de tabla sabada datos filial Dia final")
+     val dfSabanaFilialDia = new huemul_DataFrame(huemulBigDataGov, control)
+     var nombreDf ="nomdfSabanaFilialDia"
+         dfSabanaFilialDia.DF_from_SQL(nombreDf,
+      </pre>
+      <span id="sabanaFilialDia"> </span><pre class="text-success">
+                              s""" SELECT a.periodo_dia                                                                                            AS periodo_dia
+                                     ,saba_nom_tipo_consolid
+                                     ,saba_num_rut
+                                     ,saba_cod_llave_producto
+                                     ,saba_cod_sistema_origen
+                                     ,saba_fec_fecha_vencimiento
+                                     ,saba_cod_tipo_flujo
+                                     ,saba_cod_portfolio
+                                     ,saba_cod_tipo_index
+                                     ,saba_cod_origen
+                                     ,saba_cod_registro_origen
+                                     ,saba_cod_banda
+                                     ,saba_cod_tipo_tasa
+                                     ,saba_cod_tipo_sistema
+                                     ,saba_cod_tipo_moneda
+                                     ,saba_cod_moneda
+                                     ,saba_cod_moneda_sbif
+                                     ,saba_cod_mb1
+                                     ,saba_cod_tipo_operacion
+                                     ,saba_vlr_tipo_cambio
+                                     ,saba_mon_capital_mo                                                            
+                                     ,saba_mon_interes_mo 
+                                     ,saba_mon_capital_clp 
+                                     ,saba_mon_interes_clp
+                                     ,(saba_mon_capital_clp + saba_mon_interes_clp) AS saba_mon_flujo_clp
+                                     ,saba_vlr_factor
+                                     ,saba_cod_ifrs7
+                                     ,saba_cod_ifrs9
+                                     ,saba_cod_nivel_consolid
+                                     ,CASE WHEN saba_cod_origen = 1 THEN b.exp_cod_registro
+                                           ELSE c.exp_cod_registro
+                                           END                                                                                                 AS saba_cod_registro_r07
+                                     ,CASE WHEN saba_cod_portfolio = 'FFMM' OR saba_cod_portfolio = 'Administradoras de Fondos' THEN '02'
+                                           ELSE '09'
+                                           END                                                                                                 AS saba_cod_fondo
+                              
+                                     ,CASE WHEN saba_cod_origen = 1 THEN b.exp_cod_exposicion
+                                           ELSE c.exp_cod_exposicion
+                                           END                                                                                                 AS saba_cod_exposicion_r07
+                              FROM (SELECT fecha                                                   AS periodo_dia
+                                     ,'Filial'                                                     AS saba_nom_tipo_consolid
+                                     ,rut                                                          AS saba_num_rut
+                                     ,llave                                                        AS saba_cod_llave_producto
+                                     ,sistema                                                      AS saba_cod_sistema_origen
+                                     ,fecha_vcto                                                   AS saba_fec_fecha_vencimiento
+                                     ,tipo_flujo                                                   AS saba_cod_tipo_flujo
+                                     ,portfolio                                                    AS saba_cod_portfolio
+                                     ,tipo_index                                                   AS saba_cod_tipo_index
+                                     ,CASE WHEN facmon_cod_mnd_sbif is not NULL AND capital_mo < 0 AND tipo_sistema = 'A' AND origen IN (351,353,354,390)         THEN (origen+100)
+                                           WHEN facmon_cod_mnd_sbif is not NULL AND capital_mo < 0 AND tipo_sistema = 'A' AND origen NOT IN (351,353,354,390,701) THEN 490
+                                           WHEN facmon_cod_mnd_sbif is not NULL AND capital_mo < 0 AND tipo_sistema = 'A' AND origen = 701                        THEN 702
+                                           WHEN facmon_cod_mnd_sbif is not NULL AND capital_mo < 0 AND tipo_sistema = 'P' AND origen IN (451,453,454,490)         THEN (origen-100)
+                                           WHEN facmon_cod_mnd_sbif is not NULL AND capital_mo < 0 AND tipo_sistema = 'P' AND origen NOT IN (451,453,454,490,702) THEN 390
+                                           WHEN facmon_cod_mnd_sbif is not NULL AND capital_mo < 0 AND tipo_sistema = 'P' AND origen = 702                        THEN 701
+                                           ELSE origen END                                         AS saba_cod_origen
+                                     ,registro                                                     AS saba_cod_registro_origen
+                                     ,banda                                                        AS saba_cod_banda
+                                     ,tipo_tasa                                                    AS saba_cod_tipo_tasa
+                                     ,CASE WHEN capital_mo < 0 AND origen < 400 THEN 'P'
+                                           WHEN capital_mo < 0 AND origen = 701 THEN 'P'
+                                           WHEN capital_mo < 0 AND (origen BETWEEN 400 AND 700) THEN 'A'
+                                           WHEN capital_mo < 0 AND origen = 702 THEN 'A'
+                                           ELSE tipo_sistema END                                   AS saba_cod_tipo_sistema
+                                     ,tipo_moneda                                                  AS saba_cod_tipo_moneda
+                                     ,moneda                                                       AS saba_cod_moneda
+                                     ,facmon_cod_mnd_sbif                                          AS saba_cod_moneda_sbif
+                                     ,cod_mb1                                                      AS saba_cod_mb1
+                                     ,tipo_op                                                      AS saba_cod_tipo_operacion
+                                     ,tipo_cambio                                                  AS saba_vlr_tipo_cambio
+                                     ,CASE WHEN facmon_cod_mnd_sbif IS NOT NULL AND capital_mo < 0  THEN capital_mo*-1
+                                           ELSE capital_mo END                                                                        AS saba_mon_capital_mo
+                                     ,CASE WHEN facmon_cod_mnd_sbif IS NOT NULL AND interes_mo < 0  THEN interes_mo*-1
+                                           ELSE interes_mo END                                                                        AS saba_mon_interes_mo 
+                                     ,CASE WHEN facmon_cod_mnd_sbif IS NOT NULL AND capital_clp < 0 THEN capital_clp*-1
+                                           ELSE capital_clp END                                                                       AS saba_mon_capital_clp 
+                                     ,CASE WHEN facmon_cod_mnd_sbif IS NOT NULL AND interes_clp < 0 THEN interes_clp*-1
+                                           ELSE interes_clp END                                                                       AS saba_mon_interes_clp
+                                     ,facmon_num_factor                                            AS saba_vlr_factor
+                                     ,cod_ifrs                                                     AS saba_cod_ifrs7
+                                     ,cod_ifrs9                                                    AS saba_cod_ifrs9
+                                     ,''                                                           AS saba_cod_nivel_consolid
+                               FROM $DFAliasOrigen1 
+                               LEFT JOIN $DFAliasOrigen2
+                                        ON moneda = facmon_cod_mnd_bch )a
+                               
+                               LEFT JOIN $DFAliasOrigen3 b
+                                     ON CAST(saba_cod_origen AS INT) = CAST(b.exp_cod_origen_c41 AS INT) 
+                                     AND CAST(saba_cod_mb1 AS INT) = CAST(b.exp_cod_filial AS INT)
+                               LEFT JOIN $DFAliasOrigen3 c
+                                     ON CAST(saba_cod_origen AS INT) = CAST(c.exp_cod_origen_c41 AS INT)
+                                     AND CAST(saba_cod_origen AS INT) = CAST(c.exp_cod_filial AS INT)
+                               WHERE (saba_mon_capital_mo + saba_mon_interes_mo) <> 0
+                                   """)
+                                   </pre>
+                                   <pre>
+        return (dfSabanaFilialDia, nombreDf)
+    }
+    
+    /*
+    @author 
+    @param huemulBigDataGov: 
+    @param ControlParent: 
+    @param DFAliasOrigen1: dfJoinSabana1
+    @param DFAliasOrigen2: df_factor_moneda_esp_sat
+    @param DFAliasOrigen2: df_aprm_exposicion_moneda_sat
+    @returns resultInsert: union de ambos df para obtener data final utilizada en sabana filial dia
+   */
+    def sabanaFilialMes(huemulBigDataGov: huemul_BigDataGovernance, control: huemul_Control,fechaEjecucion: String, DFAliasOrigen1: String, DFAliasOrigen2: String, DFAliasOrigen3: String): (huemul_DataFrame, String) = {
+     control.NewStep(s"Creación de tabla sabada datos filial Mensual final")
+     println(s"Creación de tabla sabada datos filial Mensual final")
+     val dfSabanaFilialMes = new huemul_DataFrame(huemulBigDataGov, control)
+     var nombreDf ="nomdfSabanaFilialMes"
+         dfSabanaFilialMes.DF_from_SQL(nombreDf,
+      </pre>
+      <span id="sabanaFilialMes"> </span><pre class="text-success">
+                              s""" SELECT a.periodo_mes                                                                                            AS periodo_mes
+                                     ,saba_nom_tipo_consolid
+                                     ,saba_num_rut
+                                     ,saba_cod_llave_producto
+                                     ,saba_cod_sistema_origen
+                                     ,saba_fec_fecha_vencimiento
+                                     ,saba_cod_tipo_flujo
+                                     ,saba_cod_portfolio
+                                     ,saba_cod_tipo_index
+                                     ,saba_cod_origen
+                                     ,saba_cod_registro_origen
+                                     ,saba_cod_banda
+                                     ,saba_cod_tipo_tasa
+                                     ,saba_cod_tipo_sistema
+                                     ,saba_cod_tipo_moneda
+                                     ,saba_cod_moneda
+                                     ,saba_cod_moneda_sbif
+                                     ,saba_cod_mb1
+                                     ,saba_cod_tipo_operacion
+                                     ,saba_vlr_tipo_cambio
+                                     ,saba_mon_capital_mo
+                                     ,saba_mon_interes_mo 
+                                     ,saba_mon_capital_clp 
+                                     ,saba_mon_interes_clp
+                                     ,(saba_mon_capital_clp + saba_mon_interes_clp) AS saba_mon_flujo_clp
+                                     ,saba_vlr_factor
+                                     ,saba_cod_ifrs7
+                                     ,saba_cod_ifrs9
+                                     ,saba_cod_nivel_consolid
+                                     ,CASE WHEN saba_cod_origen = 1 THEN b.exp_cod_registro
+                                           ELSE c.exp_cod_registro
+                                           END                                                                                                 AS saba_cod_registro_r07
+                                     ,CASE WHEN saba_cod_portfolio = 'FFMM' OR saba_cod_portfolio = 'Administradoras de Fondos' THEN '02'
+                                           ELSE '09'
+                                           END                                                                                                 AS saba_cod_fondo
+                              
+                                     ,CASE WHEN saba_cod_origen = 1 THEN b.exp_cod_exposicion
+                                           ELSE c.exp_cod_exposicion
+                                           END                                                                                                 AS saba_cod_exposicion_r07
+                              FROM (SELECT fecha                                                   AS periodo_mes
+                                     ,'Filial'                                                     AS saba_nom_tipo_consolid
+                                     ,rut                                                          AS saba_num_rut
+                                     ,llave                                                        AS saba_cod_llave_producto
+                                     ,sistema                                                      AS saba_cod_sistema_origen
+                                     ,fecha_vcto                                                   AS saba_fec_fecha_vencimiento
+                                     ,tipo_flujo                                                   AS saba_cod_tipo_flujo
+                                     ,portfolio                                                    AS saba_cod_portfolio
+                                     ,tipo_index                                                   AS saba_cod_tipo_index
+                                     ,CASE WHEN facmon_cod_mnd_sbif is not NULL AND capital_mo < 0 AND tipo_sistema = 'A' AND origen IN (351,353,354,390)         THEN (origen+100)
+                                           WHEN facmon_cod_mnd_sbif is not NULL AND capital_mo < 0 AND tipo_sistema = 'A' AND origen NOT IN (351,353,354,390,701) THEN 490
+                                           WHEN facmon_cod_mnd_sbif is not NULL AND capital_mo < 0 AND tipo_sistema = 'A' AND origen = 701                        THEN 702
+                                           WHEN facmon_cod_mnd_sbif is not NULL AND capital_mo < 0 AND tipo_sistema = 'P' AND origen IN (451,453,454,490)         THEN (origen-100)
+                                           WHEN facmon_cod_mnd_sbif is not NULL AND capital_mo < 0 AND tipo_sistema = 'P' AND origen NOT IN (451,453,454,490,702) THEN 390
+                                           WHEN facmon_cod_mnd_sbif is not NULL AND capital_mo < 0 AND tipo_sistema = 'P' AND origen = 702                        THEN 701
+                                           ELSE origen END                                         AS saba_cod_origen
+                                     ,registro                                                     AS saba_cod_registro_origen
+                                     ,banda                                                        AS saba_cod_banda
+                                     ,tipo_tasa                                                    AS saba_cod_tipo_tasa
+                                     ,CASE WHEN capital_mo < 0 AND origen < 400 THEN 'P'
+                                           WHEN capital_mo < 0 AND origen = 701 THEN 'P'
+                                           WHEN capital_mo < 0 AND (origen BETWEEN 400 AND 700) THEN 'A'
+                                           WHEN capital_mo < 0 AND origen = 702 THEN 'A'
+                                           ELSE tipo_sistema END                                   AS saba_cod_tipo_sistema
+                                     ,tipo_moneda                                                  AS saba_cod_tipo_moneda
+                                     ,moneda                                                       AS saba_cod_moneda
+                                     ,facmon_cod_mnd_sbif                                          AS saba_cod_moneda_sbif
+                                     ,cod_mb1                                                      AS saba_cod_mb1
+                                     ,tipo_op                                                      AS saba_cod_tipo_operacion
+                                     ,tipo_cambio                                                  AS saba_vlr_tipo_cambio
+                                     ,CASE WHEN facmon_cod_mnd_sbif IS NOT NULL AND capital_mo < 0  THEN capital_mo*-1
+                                           ELSE capital_mo END                                                                        AS saba_mon_capital_mo
+                                     ,CASE WHEN facmon_cod_mnd_sbif IS NOT NULL AND interes_mo < 0  THEN interes_mo*-1
+                                           ELSE interes_mo END                                                                        AS saba_mon_interes_mo 
+                                     ,CASE WHEN facmon_cod_mnd_sbif IS NOT NULL AND capital_clp < 0 THEN capital_clp*-1
+                                           ELSE capital_clp END                                                                       AS saba_mon_capital_clp 
+                                     ,CASE WHEN facmon_cod_mnd_sbif IS NOT NULL AND interes_clp < 0 THEN interes_clp*-1
+                                           ELSE interes_clp END                                                                       AS saba_mon_interes_clp
+                                     ,facmon_num_factor                                            AS saba_vlr_factor
+                                     ,cod_ifrs                                                     AS saba_cod_ifrs7
+                                     ,cod_ifrs9                                                    AS saba_cod_ifrs9
+                                     ,''                                                           AS saba_cod_nivel_consolid
+                               FROM $DFAliasOrigen1 
+                               LEFT JOIN $DFAliasOrigen2
+                                        ON moneda = facmon_cod_mnd_bch )a
+                               
+                               LEFT JOIN $DFAliasOrigen3 b
+                                     ON CAST(saba_cod_origen AS INT) = CAST(b.exp_cod_origen_c41 AS INT) 
+                                     AND CAST(saba_cod_mb1 AS INT) = CAST(b.exp_cod_filial AS INT)
+                               LEFT JOIN $DFAliasOrigen3 c
+                                     ON CAST(saba_cod_origen AS INT) = CAST(c.exp_cod_origen_c41 AS INT)
+                                     AND CAST(saba_cod_origen AS INT) = CAST(c.exp_cod_filial AS INT)
+                               WHERE (saba_mon_capital_mo + saba_mon_interes_mo) <> 0
+                                   </pre>
+                                   <pre>
+                                   """)
+                                   
+        return (dfSabanaFilialMes, nombreDf)
+    }
+    
+  
+}
+
+
+</pre>
+</div>
+</body>
+</html>
